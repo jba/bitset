@@ -9,7 +9,7 @@ import (
 
 func sampleSet64() Set64 {
 	var s Set64
-	s.With(3, 63, 17)
+	s.with(3, 63, 17)
 	return s
 }
 
@@ -122,7 +122,7 @@ func TestElements64(t *testing.T) {
 		{3, 10, 64, []uint64{64 + 17, 64 + 63}},
 		{3, 0, 256, []uint64{256 + 3, 256 + 17, 256 + 63}},
 	} {
-		n := s.elements64(a[:test.n], uint8(test.start), test.high)
+		n := s.elements64or(a[:test.n], uint8(test.start), test.high)
 		got := a[:n]
 		if !cmp.Equal(got, test.want) {
 			t.Errorf("%+v: got %v", test, got)

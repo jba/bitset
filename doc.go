@@ -1,7 +1,7 @@
 // Package bitset implements bitsets. A bitset is a set of non-negative
 // integers represented using a bit for each integer.
 //
-// There are four implementations:
+// There are three implementations:
 //
 // Use Dense for the common case where you know the largest value that could be in the set,
 // and you want to use a sequence of bits. Addition, removal and membership tests on a
@@ -15,6 +15,5 @@
 // a Sparse one would take
 // XXXXXXXXXXXXXXXX TODO
 //
-// Two other implementations, Set64 and Set256, are faster versions of Dense when the
-// when the largest possible value is small.
+// Set64 is a faster version of Dense when the largest possible value is 63.
 package bitset

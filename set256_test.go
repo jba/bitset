@@ -1,21 +1,20 @@
 package bitset
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
 
-func sampleSet256() Set256 {
-	var s Set256
-	s.Add(3)
-	s.Add(63)
-	s.Add(17)
-	s.Add(70)
-	s.Add(200)
-	s.Add(201)
-	s.Add(192)
+func sampleSet256() set256 {
+	var s set256
+	s.add(3)
+	s.add(63)
+	s.add(17)
+	s.add(70)
+	s.add(200)
+	s.add(201)
+	s.add(192)
 	return s
 }
 
@@ -26,20 +25,20 @@ func TestBasics256(t *testing.T) {
 	if got != want {
 		t.Errorf("s.String() = %q, want %q", got, want)
 	}
-	if !s.Equal(&s) {
+	if !s.equal(&s) {
 		t.Fatal("not equal")
 	}
 	if !cmp.Equal(naiveElementsUint64(&s), []uint64{3, 17, 63, 70, 192, 200, 201}) {
 		t.Errorf("%s: wrong elements", s)
 	}
-	if s.Size() != 7 {
+	if s.len() != 7 {
 		t.Error("wrong size")
 	}
-	if s.Empty() {
+	if s.empty() {
 		t.Error("shouldn't be empty")
 	}
-	var z Set256
-	if !z.Empty() {
+	var z set256
+	if !z.empty() {
 		t.Error("should be empty")
 	}
 }
@@ -68,7 +67,7 @@ func TestElements256(t *testing.T) {
 	} {
 		n := s.Elements(a[:test.n], test.start)
 		got := a[:n]
-		if !reflect.DeepEqual(got, test.want) {
+		if !cmp.Equal(got, test.want) {
 			t.Errorf("%+v: got %v, want %v", test, got, test.want)
 		}
 	}
@@ -98,7 +97,7 @@ func TestElements64_256(t *testing.T) {
 		{3, 99, 0, []uint64{}},
 		{3, 10, 64, []uint64{64 + 17, 64 + 63}},
 	} {
-		n := s.elements64(a[:test.n], uint8(test.start), test.high)
+		n := s.elements64or(a[:test.n], uint8(test.start), test.high)
 		got := a[:n]
 		if !cmp.Equal(got, test.want) {
 			t.Errorf("%+v: got %v, want %v", test, got, test.want)
@@ -133,13 +132,13 @@ func TestPosition256(t *testing.T) {
 }
 
 func naiveElementsUint64(s interface {
-	Capacity() int
-	Contains(uint8) bool
+	cap() int
+	contains(uint8) bool
 }) []uint64 {
 	var els []uint64
-	for i := 0; i < s.Capacity(); i++ {
+	for i := 0; i < s.cap(); i++ {
 		u := uint8(i)
-		if s.Contains(u) {
+		if s.contains(u) {
 			els = append(els, uint64(u))
 		}
 	}
@@ -147,23 +146,23 @@ func naiveElementsUint64(s interface {
 }
 
 func TestIntersectN(t *testing.T) {
-	var c Set256
+	var c set256
 	b1 := sampleSet256()
 	b2 := sampleSet256()
-	c.IntersectN([]*Set256{&b1, &b2})
-	if !c.Equal(&b1) {
+	c.intersectN([]*set256{&b1, &b2})
+	if !c.equal(&b1) {
 		t.Fatal("not equal")
 	}
-	c.IntersectN([]*Set256{&b1, &b2, &Set256{}})
-	if !c.Empty() {
+	c.intersectN([]*set256{&b1, &b2, &set256{}})
+	if !c.empty() {
 		t.Fatal("not empty")
 	}
-	var b3 Set256
-	b3.Add(201)
-	b3.Add(188)
-	b3.Add(254)
-	c.IntersectN([]*Set256{&b1, &b3})
-	if c.Size() != 1 || !c.Contains(201) {
+	var b3 set256
+	b3.add(201)
+	b3.add(188)
+	b3.add(254)
+	c.intersectN([]*set256{&b1, &b3})
+	if c.len() != 1 || !c.contains(201) {
 		t.Fatal("bad c")
 	}
 }

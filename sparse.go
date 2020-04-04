@@ -24,14 +24,14 @@ func (s *SparseSet) Add(n uint64) {
 	if s.root == nil {
 		s.root = &node{shift: 64 - 8}
 	}
-	s.root.add(n)
+	s.root.add64(n)
 }
 
 func (s *SparseSet) Remove(n uint64) {
 	if s.root == nil {
 		return
 	}
-	if s.root.remove(uint64(n)) {
+	if s.root.remove64(uint64(n)) {
 		s.root = nil
 	}
 }
@@ -40,7 +40,7 @@ func (s *SparseSet) Contains(n uint64) bool {
 	if s.root == nil {
 		return false
 	}
-	return s.root.contains(n)
+	return s.root.contains64(n)
 }
 
 func (s *SparseSet) Empty() bool {
@@ -64,7 +64,7 @@ func (s *SparseSet) Size() int {
 	if s.root == nil {
 		return 0
 	}
-	return s.root.size()
+	return s.root.len()
 }
 
 func (s *SparseSet) MemSize() uint64 {
@@ -83,7 +83,7 @@ func (s *SparseSet) Elements(a []uint64, start uint64) int {
 	if s.root == nil {
 		return 0
 	}
-	return s.root.elements(a, start, 0)
+	return s.root.elements64high(a, start, 0)
 }
 
 // TODO: rethink
