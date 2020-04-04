@@ -33,7 +33,7 @@ func (s *Set) Capacity() int {
 func (s *Set) Size() int {
 	sz := 0
 	for _, t := range s.sets {
-		sz += t.Size()
+		sz += t.Len()
 	}
 	return sz
 }
@@ -77,7 +77,7 @@ func (s1 *Set) IntersectWith(s2 *Set) {
 	}
 	m := min / 64
 	for i := 0; i < m; i++ {
-		s1.sets[i].IntersectWith(s2.sets[i])
+		s1.sets[i].Intersect(s2.sets[i])
 	}
 	for i := m; i < len(s1.sets); i++ {
 		s1.sets[i].Clear()

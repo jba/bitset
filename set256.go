@@ -37,7 +37,7 @@ func (s *Set256) Clear() {
 }
 
 func (s *Set256) Size() int {
-	return s.sets[0].Size() + s.sets[1].Size() + s.sets[2].Size() + s.sets[3].Size()
+	return s.sets[0].Len() + s.sets[1].Len() + s.sets[2].Len() + s.sets[3].Len()
 }
 
 func (Set256) Capacity() int {
@@ -61,13 +61,13 @@ func (b *Set256) Position(n uint8) (int, bool) {
 	i := n / 64
 	switch i {
 	case 1:
-		pos = b.sets[0].Size()
+		pos = b.sets[0].Len()
 	case 2:
-		pos = b.sets[0].Size() + b.sets[1].Size()
+		pos = b.sets[0].Len() + b.sets[1].Len()
 	case 3:
-		pos = b.sets[0].Size() + b.sets[1].Size() + b.sets[2].Size()
+		pos = b.sets[0].Len() + b.sets[1].Len() + b.sets[2].Len()
 	}
-	p, ok := b.sets[i].Position(n % 64)
+	p, ok := b.sets[i].position(n % 64)
 	return pos + p, ok
 }
 
@@ -88,7 +88,7 @@ func (c *Set256) IntersectN(bs []*Set256) {
 	for i := 0; i < len(c.sets); i++ {
 		c.sets[i] = bs[0].sets[i]
 		for _, s := range bs[1:] {
-			c.sets[i].IntersectWith(s.sets[i])
+			c.sets[i].Intersect(s.sets[i])
 		}
 	}
 }

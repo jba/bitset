@@ -125,7 +125,7 @@ func TestPosition256(t *testing.T) {
 		{62, 2, false},
 		{63, 2, true},
 	} {
-		gotPos, gotIn := s.Position(test.n)
+		gotPos, gotIn := s.position(test.n)
 		if gotPos != test.pos || gotIn != test.in {
 			t.Errorf("Position(%d) = (%d, %t), want (%d, %t)", test.n, gotPos, gotIn, test.pos, test.in)
 		}
