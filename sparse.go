@@ -3,8 +3,8 @@ package bitset
 //TODO: use sync.Pool?
 
 import (
-	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -103,17 +103,19 @@ func (s1 *Sparse) AddIn(s2 *Sparse) {
 	s1.root.addIn(s2.root)
 }
 
-// RemoveIn removes from s1 all the elements in s2.
+// RemoveIn removes from s1 all the elements that are in s2.
 // It sets s1 to the set difference of s1 and s2.
 func (s1 *Sparse) RemoveIn(s2 *Sparse) {
 	if s1.Empty() || s2.Empty() {
 		return
 	}
-	s1.root.removeIn(s2.root)
+	if s1.root.removeIn(s2.root) {
+		s1.root = nil
+	}
 }
 
-// RemoveNotIn removes from s1 all the elements not in s2.
-// It sets s1 t the intersection of s1 and s2.
+// RemoveNotIn removes from s1 all the elements that are not in s2.
+// It sets s1 to the intersection of s1 and s2.
 func (s1 *Sparse) RemoveNotIn(s2 *Sparse) {
 	if s1.Empty() {
 		return
@@ -122,37 +124,38 @@ func (s1 *Sparse) RemoveNotIn(s2 *Sparse) {
 		s1.Clear()
 		return
 	}
-	s1.root.removeNotIn(s2.root)
+	if s1.root.removeNotIn(s2.root) {
+		s1.root = nil
+	}
 }
 
-// String returns a representation of s using standard set notation.
+// String returns a representation of s in standard set notation.
 func (s *Sparse) String() string {
-	if s.Empty() {
-		return "{}"
-	}
-	els := make([]uint64, s.Len())
-	s.elements(els, 0)
 	var b strings.Builder
-	fmt.Fprintf(&b, "{%d", els[0])
-	for _, e := range els[1:] {
-		fmt.Fprintf(&b, ", %d", e)
-	}
+	b.WriteByte('{')
+	first := true
+	s.Elements(func(elts []uint64) bool {
+		for _, e := range elts {
+			if !first {
+				b.WriteString(", ")
+			}
+			first = false
+			b.WriteString(strconv.FormatUint(e, 10))
+		}
+		return true
+	})
 	b.WriteByte('}')
 	return b.String()
 }
 
-// func (s *Sparse) elements(f func([]uint64) bool) {
-// 	if s.root == nil {
-// 		return
-// 	}
-// 	s.root.elements(f)
-// }
-
-func (s *Sparse) elements(a []uint64, start uint64) int {
+// Elements calls f on successive slices of the set's elements, from lowest to
+// highest. If f returns false, the iteration stops. The slice passed to f will
+// be reused when f returns.
+func (s *Sparse) Elements(f func([]uint64) bool) {
 	if s.root == nil {
-		return 0
+		return
 	}
-	return s.root.elements64high(a, start, 0)
+	s.root.elements(f, 0)
 }
 
 func (s *Sparse) memSize() uint64 {

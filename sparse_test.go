@@ -1,7 +1,6 @@
 package bitset
 
 import (
-	"fmt"
 	"math/rand"
 	"sort"
 	"testing"
@@ -133,7 +132,6 @@ func TestSparseRemoveIn(t *testing.T) {
 }
 
 func TestSparseRemoveNotIn(t *testing.T) {
-	t.Skip()
 	for _, test := range []struct {
 		in1, in2 []uint64
 	}{
@@ -210,8 +208,17 @@ func (u uslice) Len() int           { return len(u) }
 func (u uslice) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 func (u uslice) Less(i, j int) bool { return u[i] < u[j] }
 
-func TestSparseElements1(t *testing.T) {
-	var s Sparse
+func TestSparseElements(t *testing.T) {
+	elements := func(s *Sparse) []uint64 {
+		var elts []uint64
+		s.Elements(func(e []uint64) bool {
+			elts = append(elts, e...)
+			return true
+		})
+		return elts
+	}
+
+	s := NewSparse()
 	els := []uint64{3, 17, 300, 12345, 1e8}
 	for _, e := range els {
 		s.Add64(e)
@@ -219,32 +226,18 @@ func TestSparseElements1(t *testing.T) {
 	if !s.Contains(1e8) {
 		t.Fatal("no 1e8")
 	}
-	a := make([]uint64, len(els), len(els))
-	n := s.elements(a, 0)
-	got := a[:n]
+
+	got := elements(s)
 	if !cmp.Equal(got, els) {
-		t.Fatalf("got %v, want %v", got, els)
-	}
-}
-
-func TestSparseElements2(t *testing.T) {
-	var s Sparse
-	nums := uRandSlice(1e3)
-	for _, n := range nums {
-		s.Add64(n)
-	}
-	sort.Sort(uslice(nums))
-	a := make([]uint64, len(nums), len(nums))
-	if s.Len() != len(nums) {
-		t.Fatalf("size: got %d", s.Len())
+		t.Errorf("got %v, want %v", got, els)
 	}
 
-	n := s.elements(a, 0)
-	if n != len(nums) {
-		t.Fatalf("len: got %d, want %d", n, len(nums))
-	}
-	if !cmp.Equal(a[:n], nums) {
-		t.Fatal("not equal")
+	nums := uRandSlice(100)
+	want := uDedupSort(nums)
+	s = sparseFrom(nums...)
+	got = elements(s)
+	if !cmp.Equal(got, want) {
+		t.Fatalf("got %v, want %v", got, want)
 	}
 }
 
@@ -263,14 +256,6 @@ func TestString(t *testing.T) {
 			t.Errorf("%v: got %q, want %q", test.els, got, test.want)
 		}
 	}
-}
-
-func TestMemSize(t *testing.T) {
-	s := NewSparse()
-	for i := 1000; i <= 1e6; i += 1000 {
-		s.Add(uint(i))
-	}
-	fmt.Printf("size=%d, bytes=%d\n", s.Len(), s.memSize())
 }
 
 func uUnion(u1, u2 []uint64) []uint64 {
@@ -316,6 +301,12 @@ func uSlice(m map[uint64]bool) []uint64 {
 	for u := range m {
 		s = append(s, u)
 	}
+	return s
+}
+
+func uDedupSort(us []uint64) []uint64 {
+	s := uSlice(uMap(us))
+	sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
 	return s
 }
 

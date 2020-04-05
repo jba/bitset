@@ -1,7 +1,7 @@
 package bitset
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -43,13 +43,6 @@ func (s *set256) empty() bool {
 	return s.sets[0].Empty() && s.sets[1].Empty() && s.sets[2].Empty() && s.sets[3].Empty()
 }
 
-// func (s *set256) clear() {
-// 	s.sets[0].Clear()
-// 	s.sets[1].Clear()
-// 	s.sets[2].Clear()
-// 	s.sets[3].Clear()
-// }
-
 func (s *set256) len() int {
 	return s.sets[0].Len() + s.sets[1].Len() + s.sets[2].Len() + s.sets[3].Len()
 }
@@ -58,7 +51,8 @@ func (set256) cap() int {
 	return 256
 }
 
-func (s1 *set256) equal(s2 *set256) bool {
+func (s1 *set256) equal(b subber) bool {
+	s2 := b.(*set256)
 	return s1.sets[0] == s2.sets[0] &&
 		s1.sets[1] == s2.sets[1] &&
 		s1.sets[2] == s2.sets[2] &&
@@ -111,75 +105,37 @@ func (s1 *set256) removeNotIn(sub subber) (empty bool) {
 	return s1.empty()
 }
 
-// c = a intersect b
-// func (c *Set256) Intersect2(a, b *Set256) {
-// 	c.sets[0] = a.sets[0] & b.sets[0]
-// 	c.sets[1] = a.sets[1] & b.sets[1]
-// 	c.sets[2] = a.sets[2] & b.sets[2]
-// 	c.sets[3] = a.sets[3] & b.sets[3]
-// }
-
-// c cannot be one of sets
-// func (c *set256) intersectN(bs []*set256) {
-// 	if len(bs) == 0 {
-// 		c.clear()
-// 		return
-// 	}
-// 	for i := 0; i < len(c.sets); i++ {
-// 		c.sets[i] = bs[0].sets[i]
-// 		for _, s := range bs[1:] {
-// 			c.sets[i].RemoveNotIn(s.sets[i])
-// 		}
-// 	}
-// }
-
-// Fill a with set elements, starting from start.
-// Return the number added.
-func (s *set256) elements8(a []uint8, start uint8) int {
-	if len(a) == 0 {
-		return 0
+func (s *set256) elements(f func([]uint64) bool, offset uint64) bool {
+	var buf [64]uint64
+	for i, ss := range s.sets {
+		n := ss.populate64(&buf)
+		offset2 := offset + uint64(64*i)
+		for j := range buf[:n] {
+			buf[j] += offset2
+		}
+		if !f(buf[:n]) {
+			return false
+		}
 	}
-	si := start / 64
-	n := s.sets[si].elementsOr(a, start%64, si*64)
-	for i := si + 1; i < 4; i++ {
-		n += s.sets[i].elementsOr(a[n:], 0, i*64)
-	}
-	return n
-}
-
-func (s *set256) elements64high8(a []uint64, start uint8, high uint64) int {
-	if len(a) == 0 {
-		return 0
-	}
-	si := start / 64
-	n := s.sets[si].elements64or(a, start%64, high|uint64(si*64))
-	for i := si + 1; i < 4; i++ {
-		n += s.sets[i].elements64or(a[n:], 0, high|uint64(i*64))
-	}
-	return n
+	return true
 }
 
 func (s set256) String() string {
-	var a [256]uint64
-	n := s.elements64high(a[:], 0, 0)
-	if n == 0 {
-		return "{}"
-	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "{%d", a[0])
-	for _, e := range a[1:n] {
-		fmt.Fprintf(&b, ", %d", e)
-	}
+	b.WriteByte('{')
+	first := true
+	s.elements(func(elts []uint64) bool {
+		for _, e := range elts {
+			if !first {
+				b.WriteString(", ")
+			}
+			first = false
+			b.WriteString(strconv.FormatUint(e, 10))
+		}
+		return true
+	}, 0)
 	b.WriteByte('}')
 	return b.String()
 }
 
 func (s *set256) memSize() uint64 { return memSize(*s) }
-
-func (s *set256) elements64high(a []uint64, start, high uint64) int {
-	return s.elements64high8(a, uint8(start), high)
-}
-
-func (s *set256) equalSub(b subber) bool {
-	return s.equal(b.(*set256))
-}

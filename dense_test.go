@@ -128,10 +128,20 @@ func denseUints(d *Dense) []uint {
 	return us
 }
 
+func denseElts(d *Dense) []uint {
+	var elts []uint
+	d.Elements(func(e []uint) bool {
+		elts = append(elts, e...)
+		return true
+	})
+	return elts
+}
+
 func TestDenseBinaryFunctions(t *testing.T) {
 	for _, test := range tests {
 		d1 := denseFrom(test.s1)
-		if got := d1.Elements(); !cmp.Equal(got, test.s1) {
+
+		if got := denseElts(d1); !cmp.Equal(got, test.s1) {
 			t.Errorf("got %v, want %v", got, test.s1)
 		}
 		d2 := denseFrom(test.s2)

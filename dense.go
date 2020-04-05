@@ -134,18 +134,19 @@ func (s1 *Dense) RemoveNotIn(s2 *Dense) {
 	}
 }
 
-func (s *Dense) Elements() []uint {
-	if s.Empty() {
-		return nil
-	}
-	elts := make([]uint, 0, s.Len())
+// Elements calls f on successive slices of the set's elements, from lowest to
+// highest. If f returns false, the iteration stops. The slice passed to f will
+// be reused when f returns.
+func (s *Dense) Elements(f func([]uint) bool) {
+	var buf [64]uint
 	for i, t := range s.sets {
-		n := len(elts)
-		elts = t.appendElements(elts)
-		a := uint(64 * i)
-		for j := n; j < len(elts); j++ {
-			elts[j] += a
+		n := t.populate(&buf)
+		offset := uint(64 * i)
+		for j := range buf[:n] {
+			buf[j] += offset
+		}
+		if !f(buf[:n]) {
+			break
 		}
 	}
-	return elts
 }
