@@ -25,10 +25,13 @@ func setslice(capacity int) []Set64 {
 	return make([]Set64, (capacity-1)/64+1)
 }
 
+// Cap returns the maximum number of elements the set can contain,
+// which is one greater than the largest element it can contain.
 func (s *Dense) Cap() int {
 	return len(s.sets) * 64
 }
 
+// Len returns the number of elements in s.
 func (s *Dense) Len() int {
 	sz := 0
 	for _, t := range s.sets {
@@ -37,6 +40,7 @@ func (s *Dense) Len() int {
 	return sz
 }
 
+// Empty reports whether s has no elements.
 func (s *Dense) Empty() bool {
 	for _, t := range s.sets {
 		if !t.Empty() {
@@ -46,30 +50,36 @@ func (s *Dense) Empty() bool {
 	return true
 }
 
+// Copy returns a copy of s.
 func (s *Dense) Copy() *Dense {
 	newSets := make([]Set64, len(s.sets))
 	copy(newSets, s.sets)
 	return &Dense{sets: newSets}
 }
 
-func (s *Dense) Add(u uint) {
-	s.sets[u/64].Add(uint8(u % 64))
+// Add adds n to s.
+func (s *Dense) Add(n uint) {
+	s.sets[n/64].Add(uint8(n % 64))
 }
 
-func (s *Dense) Remove(u uint) {
-	s.sets[u/64].Remove(uint8(u % 64))
+// Remove removes n from s.
+func (s *Dense) Remove(n uint) {
+	s.sets[n/64].Remove(uint8(n % 64))
 }
 
-func (s *Dense) Contains(u uint) bool {
-	return s.sets[u/64].Contains(uint8(u % 64))
+// Contains reports whether s contains s.
+func (s *Dense) Contains(n uint) bool {
+	return s.sets[n/64].Contains(uint8(n % 64))
 }
 
+// Clear removes all elements from s.
 func (s *Dense) Clear() {
 	for i := range s.sets { // can't use _, t because it copies
 		s.sets[i].Clear()
 	}
 }
 
+// SetCap changes the capacity of s.
 func (s *Dense) SetCap(newCapacity int) {
 	newSets := setslice(newCapacity)
 	copy(newSets, s.sets)
@@ -95,12 +105,15 @@ func (s1 *Dense) Equal(s2 *Dense) bool {
 	return true
 }
 
+// Complement replaces s with its complement.
 func (s *Dense) Complement() {
 	for i := 0; i < len(s.sets); i++ {
 		s.sets[i].Complement()
 	}
 }
 
+// AddIn adds all the elements in s2 to s1.
+// It sets s1 to the union of s1 and s2.
 func (s1 *Dense) AddIn(s2 *Dense) {
 	if s1.Cap() < s2.Cap() {
 		// TODO: Grow s1 less if it's not necessary, or panic.
@@ -111,6 +124,8 @@ func (s1 *Dense) AddIn(s2 *Dense) {
 	}
 }
 
+// RemoveIn removes from s1 all the elements that are in s2.
+// It sets s1 to the set difference of s1 and s2.
 func (s1 *Dense) RemoveIn(s2 *Dense) {
 	min := len(s1.sets)
 	if min > len(s2.sets) {
@@ -121,6 +136,8 @@ func (s1 *Dense) RemoveIn(s2 *Dense) {
 	}
 }
 
+// RemoveNotIn removes from s1 all the elements that are not in s2.
+// It sets s1 to the intersection of s1 and s2.
 func (s1 *Dense) RemoveNotIn(s2 *Dense) {
 	min := len(s1.sets)
 	if min > len(s2.sets) {
@@ -132,6 +149,7 @@ func (s1 *Dense) RemoveNotIn(s2 *Dense) {
 	for i := min; i < len(s1.sets); i++ {
 		s1.sets[i].Clear()
 	}
+
 }
 
 // Elements calls f on successive slices of the set's elements, from lowest to

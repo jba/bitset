@@ -1,7 +1,5 @@
 package bitset
 
-//TODO: use sync.Pool?
-
 import (
 	"reflect"
 	"strconv"

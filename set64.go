@@ -1,8 +1,8 @@
 package bitset
 
 import (
-	"fmt"
 	"math/bits"
+	"strconv"
 	"strings"
 )
 
@@ -87,12 +87,11 @@ func (s1 *Set64) RemoveNotIn(s2 Set64) {
 	*s1 &= s2
 }
 
-// Append appends the elements of s to elts, in ascending order.
-func (s Set64) Append(elts []uint8) []uint8 {
-	low := uint8(bits.TrailingZeros64(uint64(s)))
-	high := 64 - uint8(bits.LeadingZeros64(uint64(s)))
-	var u uint8
-	for u = low; u < high; u++ {
+// append appends the elements of s to elts, in ascending order.
+func (s Set64) append(elts []uint8) []uint8 {
+	low, high := s.elementRange()
+	for e := low; e < high; e++ {
+		u := uint8(e)
 		if s.Contains(u) {
 			elts = append(elts, u)
 		}
@@ -130,21 +129,17 @@ func (s Set64) elementRange() (int, int) {
 
 // String returns a representation of s in standard set notation.
 func (s Set64) String() string {
-	if s.Empty() {
-		return "{}"
-	}
+	var buf [64]uint
+	n := s.populate(&buf)
 	var b strings.Builder
 	b.WriteByte('{')
 	first := true
-	var i uint8
-	for i = 0; i < 64; i++ {
-		if s.Contains(i) {
-			if !first {
-				b.WriteString(", ")
-			}
-			fmt.Fprintf(&b, "%d", i)
-			first = false
+	for _, e := range buf[:n] {
+		if !first {
+			b.WriteString(", ")
 		}
+		first = false
+		b.WriteString(strconv.FormatUint(uint64(e), 10))
 	}
 	b.WriteByte('}')
 	return b.String()
@@ -161,43 +156,3 @@ func (s Set64) position(n uint8) (int, bool) {
 	pos := bits.OnesCount64(uint64(s) & (mask - 1))
 	return pos, in
 }
-
-// // Elements populates els with at most len(els) elements of s, starting with
-// // start. That is, els[0] will be the smallest element of s that is greater than
-// // or equal to start. The return value is the number of elements added to els.
-// func (s Set64) Elements(els []uint8, start uint8) int {
-// 	if len(els) == 0 {
-// 		return 0
-// 	}
-// 	i := 0
-// 	for b := start; b < 64 && i < len(els); b++ {
-// 		if s.Contains(b) {
-// 			els[i] = b
-// 			i++
-// 		}
-// 	}
-// 	return i
-// }
-
-// elementsOr is like Elements, but it ors in u to the result.
-// func (s Set64) elementsOr(a []uint8, start, u uint8) int {
-// 	n := s.Elements(a, start)
-// 	for i := 0; i < n; i++ {
-// 		a[i] |= u
-// 	}
-// 	return n
-// }
-
-// func (s Set64) elements64or(a []uint64, start uint8, u uint64) int {
-// 	if len(a) == 0 {
-// 		return 0
-// 	}
-// 	i := 0
-// 	for b := start; b < 64 && i < len(a); b++ {
-// 		if s.Contains(b) {
-// 			a[i] = u | uint64(b)
-// 			i++
-// 		}
-// 	}
-// 	return i
-// }

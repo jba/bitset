@@ -69,50 +69,17 @@ func TestSet64LenEmpty(t *testing.T) {
 
 func TestAppend(t *testing.T) {
 	s := Set64From(3, 17, 63)
-	got := s.Append(nil)
+	got := s.append(nil)
 	want := []uint8{3, 17, 63}
 	if !cmp.Equal(got, want) {
 		t.Errorf("%s: got %v, want %v", s, got, want)
 	}
-	got = s.Append([]uint8{100})
+	got = s.append([]uint8{100})
 	want = []uint8{100, 3, 17, 63}
 	if !cmp.Equal(got, want) {
 		t.Errorf("%s: got %v, want %v", s, got, want)
 	}
 }
-
-// func TestElements64(t *testing.T) {
-// 	var a [10]uint64
-// 	s := sampleSet64()
-// 	for _, test := range []struct {
-// 		n     int
-// 		start uint64
-// 		high  uint64
-// 		want  []uint64
-// 	}{
-// 		{0, 0, 0, []uint64{}},
-// 		{0, 10, 0, []uint64{}},
-// 		{1, 0, 0, []uint64{3}},
-// 		{1, 5, 0, []uint64{17}},
-// 		{1, 27, 0, []uint64{63}},
-// 		{2, 0, 0, []uint64{3, 17}},
-// 		{2, 5, 0, []uint64{17, 63}},
-// 		{2, 39, 0, []uint64{63}},
-// 		{2, 63, 0, []uint64{63}},
-// 		{2, 83, 0, []uint64{}},
-// 		{3, 0, 0, []uint64{3, 17, 63}},
-// 		{3, 10, 0, []uint64{17, 63}},
-// 		{3, 99, 0, []uint64{}},
-// 		{3, 10, 64, []uint64{64 + 17, 64 + 63}},
-// 		{3, 0, 256, []uint64{256 + 3, 256 + 17, 256 + 63}},
-// 	} {
-// 		n := s.elements64or(a[:test.n], uint8(test.start), test.high)
-// 		got := a[:n]
-// 		if !cmp.Equal(got, test.want) {
-// 			t.Errorf("%+v: got %v", test, got)
-// 		}
-// 	}
-// }
 
 func TestPosition(t *testing.T) {
 	s := sampleSet64()

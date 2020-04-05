@@ -1,7 +1,5 @@
 package bitset
 
-import "fmt"
-
 // A node is a compact radix tree element.
 // It behaves like a 256-element array of subnodes, indexed by one byte of the
 // element. In fact, only the non-empty subnodes are represented; the bitset
@@ -22,17 +20,16 @@ type subnode struct {
 // It is implemented by node, for interior nodes, and set256, for leaves.
 type subber interface {
 	add64(uint64)
-	remove64(uint64) bool // return true if empty
+	remove64(uint64) bool // returns true if empty
 	contains64(uint64) bool
-	elements(func([]uint64) bool, uint64) bool
-	//elements64high(a []uint64, start, high uint64) int
 	len() int
-	memSize() uint64
 	equal(subber) bool
 	copy() subber
 	addIn(subber)
-	removeIn(subber) bool
-	removeNotIn(subber) bool
+	removeIn(subber) bool    // returns true if empty
+	removeNotIn(subber) bool // returns true if empty
+	memSize() uint64
+	elements(func([]uint64) bool, uint64) bool
 }
 
 func (n *node) newSubber() subber {
@@ -70,13 +67,12 @@ func (n *node) add64(e uint64) {
 }
 
 func (n *node) remove64(e uint64) (empty bool) {
-	// assert node is not empty
+	// n is not empty.
 	index := uint8(e >> n.shift)
 	pos, found := n.bitset.position(index)
 	if !found {
-		return false // we weren't empty coming in
+		return false // We weren't empty coming in.
 	}
-	assert(n.subnodes[pos].index == index)
 	sub := n.subnodes[pos].sub
 	if sub.remove64(e) {
 		if len(n.subnodes) == 1 {
@@ -117,7 +113,6 @@ func (n *node) contains64(e uint64) bool {
 func (n1 *node) equal(sub subber) bool {
 	n2 := sub.(*node)
 	if !n1.bitset.equal(&n2.bitset) {
-		fmt.Printf("bitsets unequal: %s, %s\n", n1.bitset, n2.bitset)
 		return false
 	}
 	for i, sn1 := range n1.subnodes {
@@ -156,7 +151,6 @@ func (n *node) elements(f func([]uint64) bool, offset uint64) bool {
 
 func (n1 *node) addIn(s subber) {
 	n2 := s.(*node)
-	assert(n1.shift == n2.shift)
 	// Merge the lists of subnodes.
 	i1 := 0
 	i2 := 0
@@ -194,7 +188,6 @@ func (n1 *node) addIn(s subber) {
 
 func (n1 *node) removeIn(s subber) (empty bool) {
 	n2 := s.(*node)
-	assert(n1.shift == n2.shift)
 	i1 := 0
 	i2 := 0
 	removed := false
@@ -244,7 +237,6 @@ func (n *node) adjustSubnodes() {
 
 func (n1 *node) removeNotIn(s subber) (empty bool) {
 	n2 := s.(*node)
-	assert(n1.shift == n2.shift)
 	i1 := 0
 	i2 := 0
 	removed := false

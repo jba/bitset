@@ -47,10 +47,6 @@ func (s *set256) len() int {
 	return s.sets[0].Len() + s.sets[1].Len() + s.sets[2].Len() + s.sets[3].Len()
 }
 
-func (set256) cap() int {
-	return 256
-}
-
 func (s1 *set256) equal(b subber) bool {
 	s2 := b.(*set256)
 	return s1.sets[0] == s2.sets[0] &&
