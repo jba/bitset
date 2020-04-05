@@ -13,6 +13,11 @@ type set256 struct {
 	sets [4]Set64
 }
 
+func (s *set256) copy() subber {
+	c := *s
+	return &c
+}
+
 func (s *set256) add(n uint8) {
 	s.sets[n/64].Add(n % 64)
 }
@@ -69,6 +74,14 @@ func (b *set256) position(n uint8) (int, bool) {
 	}
 	p, ok := b.sets[i].position(n % 64)
 	return pos + p, ok
+}
+
+func (s1 *set256) addIn(sub subber) {
+	s2 := sub.(*set256)
+	s1.sets[0].AddIn(s2.sets[0])
+	s1.sets[1].AddIn(s2.sets[1])
+	s1.sets[2].AddIn(s2.sets[2])
+	s1.sets[3].AddIn(s2.sets[3])
 }
 
 // c = a intersect b

@@ -3,27 +3,26 @@ package bitset
 import (
 	"math/rand"
 	"reflect"
-	"runtime"
 	"sort"
-	"strconv"
 	"testing"
 )
 
+func sparseFrom(us ...uint64) *Sparse {
+	s := NewSparse()
+	for _, e := range us {
+		s.Add64(e)
+	}
+	return s
+}
+
 func TestSparseBasics(t *testing.T) {
-	// TODO: t.Helper
 	check := func(b bool) {
+		t.Helper()
 		if !b {
-			_, _, line, ok := runtime.Caller(1)
-			var ln string
-			if !ok {
-				ln = "???"
-			} else {
-				ln = strconv.Itoa(line)
-			}
-			t.Fatalf("line %s failed", ln)
+			t.Fatal("check failed")
 		}
 	}
-	var s SparseSet
+	var s Sparse
 
 	check(s.Empty())
 	s.Add(0)
@@ -50,6 +49,17 @@ func TestSparseBasics(t *testing.T) {
 	check(!s.Contains(492409))
 }
 
+// TODO: use cover to make sure we're hitting everything
+func TestSparseAddIn(t *testing.T) {
+	s1 := sparseFrom(17, 99)
+	s2 := sparseFrom(3, 500, 1000)
+	s1.AddIn(s2)
+	want := sparseFrom(3, 17, 99, 500, 1000)
+	if !s1.Equal(want) {
+		t.Errorf("got %s, want %s", s1, want)
+	}
+}
+
 func randUint64() uint64 {
 	lo := uint64(rand.Uint32())
 	hi := uint64(rand.Uint32())
@@ -57,34 +67,34 @@ func randUint64() uint64 {
 }
 
 func TestLots(t *testing.T) {
-	var s SparseSet
+	var s Sparse
 	nums := make([]uint64, 1e3)
 	for i := 0; i < len(nums); i++ {
 		nums[i] = randUint64()
 	}
 
 	for i, n := range nums {
-		if s.Size() != i {
-			t.Fatalf("s.Size() = %d, want %d", s.Size(), i)
+		if s.Len() != i {
+			t.Fatalf("s.Size() = %d, want %d", s.Len(), i)
 		}
-		s.Add(n)
+		s.Add64(n)
 
 	}
 	for _, n := range nums {
-		if !s.Contains(n) {
+		if !s.Contains64(n) {
 			t.Errorf("does not contain %d", n)
 		}
 	}
 	for i, n := range nums {
-		got := s.Size()
+		got := s.Len()
 		want := len(nums) - i
 		if got != want {
 			t.Fatalf("s.Size() = %d, want %d", got, want)
 		}
-		s.Remove(n)
+		s.Remove64(n)
 	}
 	for _, n := range nums {
-		if s.Contains(n) {
+		if s.Contains64(n) {
 			t.Errorf("does contain %d", n)
 		}
 	}
@@ -97,10 +107,10 @@ func (u uslice) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 func (u uslice) Less(i, j int) bool { return u[i] < u[j] }
 
 func TestSparseElements1(t *testing.T) {
-	var s SparseSet
+	var s Sparse
 	els := []uint64{3, 17, 300, 12345, 1e8}
 	for _, e := range els {
-		s.Add(e)
+		s.Add64(e)
 	}
 	if !s.Contains(1e8) {
 		t.Fatal("no 1e8")
@@ -114,18 +124,18 @@ func TestSparseElements1(t *testing.T) {
 }
 
 func TestSparseElements2(t *testing.T) {
-	var s SparseSet
+	var s Sparse
 	nums := make([]uint64, 1e3)
 	for i := 0; i < len(nums); i++ {
 		nums[i] = randUint64()
 	}
 	for _, n := range nums {
-		s.Add(n)
+		s.Add64(n)
 	}
 	sort.Sort(uslice(nums))
 	a := make([]uint64, len(nums), len(nums))
-	if s.Size() != len(nums) {
-		t.Fatalf("size: got %d", s.Size())
+	if s.Len() != len(nums) {
+		t.Fatalf("size: got %d", s.Len())
 	}
 
 	n := s.Elements(a, 0)
@@ -148,7 +158,7 @@ func TestString(t *testing.T) {
 		{set(9), "{9}"},
 		{set(9, 1e4, 99), "{9, 99, 10000}"},
 	} {
-		got := NewSparseSet(test.els...).String()
+		got := sparseFrom(test.els...).String()
 		if got != test.want {
 			t.Errorf("%v: got %q, want %q", test.els, got, test.want)
 		}
@@ -166,10 +176,10 @@ func TestIntersect(t *testing.T) {
 		{set(9), set(9, 10), set(9)},
 		{set(9, 99, 1e8), set(99, 1e8+1), set(99)},
 	} {
-		s1 := NewSparseSet(test.els1...)
-		s2 := NewSparseSet(test.els2...)
-		want := NewSparseSet(test.want...)
-		var got SparseSet
+		s1 := sparseFrom(test.els1...)
+		s2 := sparseFrom(test.els2...)
+		want := sparseFrom(test.want...)
+		var got Sparse
 		got.Intersect(s1, s2)
 		if !got.Equal(want) {
 			t.Errorf("%s & %s = %v, want %v", s1, s2, got, want)
