@@ -30,6 +30,8 @@ type subber interface {
 	equalSub(subber) bool
 	copy() subber
 	addIn(subber)
+	removeIn(subber) bool
+	removeNotIn(subber) bool
 }
 
 func (n *node) newSubber() subber {
@@ -66,7 +68,25 @@ func (n *node) add64(e uint64) {
 	sub.add64(e)
 }
 
-// insertSub inserts a subnode into n at pos.
+func (n *node) remove64(e uint64) (empty bool) {
+	// assert node is not empty
+	index := uint8(e >> n.shift)
+	pos, found := n.bitset.position(index)
+	if !found {
+		return false // we weren't empty coming in
+	}
+	assert(n.subnodes[pos].index == index)
+	sub := n.subnodes[pos].sub
+	if sub.remove64(e) {
+		if len(n.subnodes) == 1 {
+			// No need to clean up, we're finished.
+			return true
+		}
+		n.deleteSubnode(pos)
+	}
+	return false
+}
+
 func (n *node) insertSubnode(pos int, sn subnode) {
 	newsubs := make([]subnode, len(n.subnodes)+1)
 	copy(newsubs, n.subnodes[:pos])
@@ -76,25 +96,12 @@ func (n *node) insertSubnode(pos int, sn subnode) {
 	n.bitset.add(sn.index)
 }
 
-func (n *node) remove64(e uint64) (empty bool) {
-	// assert node is not empty
-	index := uint8(e >> n.shift)
-	pos, found := n.bitset.position(index)
-	if !found {
-		return false // we weren't empty coming in
-	}
-	sub := n.subnodes[pos].sub
-	if sub.remove64(e) {
-		if len(n.subnodes) == 1 {
-			// No need to clean up, we're finished.
-			return true
-		}
-		copy(n.subnodes[pos:], n.subnodes[pos+1:])
-		// TODO: really shrink memory
-		n.subnodes = n.subnodes[:len(n.subnodes)-1]
-		n.bitset.remove(index)
-	}
-	return false
+func (n *node) deleteSubnode(pos int) {
+	// TODO: really shrink memory
+	index := n.subnodes[pos].index
+	copy(n.subnodes[pos:], n.subnodes[pos+1:])
+	n.subnodes = n.subnodes[:len(n.subnodes)-1]
+	n.bitset.remove(index)
 }
 
 func (n *node) contains64(e uint64) bool {
@@ -158,12 +165,6 @@ func (n *node) elements64high(a []uint64, start, high uint64) int {
 	return total
 }
 
-func assert(b bool) {
-	if !b {
-		panic("assertion failed")
-	}
-}
-
 func (n1 *node) addIn(s subber) {
 	n2 := s.(*node)
 	assert(n1.shift == n2.shift)
@@ -200,6 +201,96 @@ func (n1 *node) addIn(s subber) {
 		i1++
 		i2++
 	}
+}
+
+func (n1 *node) removeIn(s subber) (empty bool) {
+	n2 := s.(*node)
+	assert(n1.shift == n2.shift)
+	i1 := 0
+	i2 := 0
+	removed := false
+	for i1 < len(n1.subnodes) && i2 < len(n2.subnodes) {
+		sn1 := n1.subnodes[i1]
+		sn2 := n2.subnodes[i2]
+		switch {
+		case sn1.index < sn2.index:
+			// n1 has a chunk of elements that n2 does not.
+			// Skip over it.
+			i1++
+
+		case sn1.index > sn2.index:
+			// n2 has elements that n1 does not. Skip.
+			i2++
+
+		default:
+			// sn1 and sn2 have the same index.
+			if sn1.sub.removeIn(sn2.sub) {
+				n1.bitset.remove(sn1.index)
+				removed = true
+			}
+			i1++
+			i2++
+		}
+	}
+	if n1.bitset.empty() {
+		return true
+	}
+	if !removed {
+		return false
+	}
+	n1.adjustSubnodes()
+	return false
+}
+
+func (n *node) adjustSubnodes() {
+	// Change subnodes to match bitset.
+	sns := n.subnodes
+	n.subnodes = n.subnodes[:0]
+	for _, sn := range sns {
+		if n.bitset.contains(sn.index) {
+			n.subnodes = append(n.subnodes, sn)
+		}
+	}
+}
+
+func (n1 *node) removeNotIn(s subber) (empty bool) {
+	n2 := s.(*node)
+	assert(n1.shift == n2.shift)
+	i1 := 0
+	i2 := 0
+	removed := false
+	for i1 < len(n1.subnodes) && i2 < len(n2.subnodes) {
+		sn1 := n1.subnodes[i1]
+		sn2 := n2.subnodes[i2]
+		switch {
+		case sn1.index < sn2.index:
+			// n1 has elements that n2 does not. Remove them.
+			n1.bitset.remove(sn1.index)
+			removed = true
+			i1++
+
+		case sn1.index > sn2.index:
+			// n2 has elements that n1 does not. Skip.
+			i2++
+
+		default:
+			// sn1 and sn2 have the same index.
+			if sn1.sub.removeNotIn(sn2.sub) {
+				n1.bitset.remove(sn1.index)
+				removed = true
+			}
+			i1++
+			i2++
+		}
+	}
+	if n1.bitset.empty() {
+		return true
+	}
+	if !removed {
+		return false
+	}
+	n1.adjustSubnodes()
+	return false
 }
 
 // func (c *node) intersect(a, b, *node) {
@@ -246,65 +337,65 @@ func (n1 *node) addIn(s subber) {
 // 	}
 // }
 
-func intersectNodes(nodes []*node) *node {
-	var bsets [256]*set256
-	for i, n := range nodes {
-		bsets[i] = &n.bitset
-	}
-	var bset set256
-	bset.intersectN(bsets[:len(nodes)])
-	if bset.empty() {
-		return nil
-	}
-	// posSet contains the indices of the intersection.
-	// At this point we know that there is at least one node,
-	// and none of the nodes are empty.
-	result := &node{
-		shift:  nodes[0].shift,
-		bitset: bset,
-	}
-	var indices [256]uint8
-	size := bset.elements8(indices[:], 0)
-	var subnodes [256]*node
-	var subsets [256]*set256
-	isSets := (nodes[0].shift == 8)
-	for _, index := range indices[:size] {
-		for i, n := range nodes {
-			p, found := n.bitset.position(index)
-			if !found {
-				panic("intersectNodes: index not found")
-			}
-			sub := n.subnodes[p].sub
-			if isSets {
-				subsets[i] = sub.(*set256)
-			} else {
-				subnodes[i] = sub.(*node)
-			}
-		}
-		var newsub subber
-		if isSets {
-			var bs set256
-			bs.intersectN(subsets[:len(nodes)])
-			if !bs.empty() {
-				newsub = &bs
-			}
-		} else {
-			in := intersectNodes(subnodes[:len(nodes)])
-			if in != nil {
-				newsub = in
-			}
-		}
-		if newsub != nil {
-			result.subnodes = append(result.subnodes,
-				subnode{index: index, sub: newsub})
-		} else {
-			// Although all the nodes have an item at this position,
-			// the intersection of those items is empty.
-			result.bitset.remove(index)
-		}
-	}
-	if result.bitset.empty() {
-		return nil
-	}
-	return result
-}
+// func intersectNodes(nodes []*node) *node {
+// 	var bsets [256]*set256
+// 	for i, n := range nodes {
+// 		bsets[i] = &n.bitset
+// 	}
+// 	var bset set256
+// 	bset.intersectN(bsets[:len(nodes)])
+// 	if bset.empty() {
+// 		return nil
+// 	}
+// 	// posSet contains the indices of the intersection.
+// 	// At this point we know that there is at least one node,
+// 	// and none of the nodes are empty.
+// 	result := &node{
+// 		shift:  nodes[0].shift,
+// 		bitset: bset,
+// 	}
+// 	var indices [256]uint8
+// 	size := bset.elements8(indices[:], 0)
+// 	var subnodes [256]*node
+// 	var subsets [256]*set256
+// 	isSets := (nodes[0].shift == 8)
+// 	for _, index := range indices[:size] {
+// 		for i, n := range nodes {
+// 			p, found := n.bitset.position(index)
+// 			if !found {
+// 				panic("intersectNodes: index not found")
+// 			}
+// 			sub := n.subnodes[p].sub
+// 			if isSets {
+// 				subsets[i] = sub.(*set256)
+// 			} else {
+// 				subnodes[i] = sub.(*node)
+// 			}
+// 		}
+// 		var newsub subber
+// 		if isSets {
+// 			var bs set256
+// 			bs.intersectN(subsets[:len(nodes)])
+// 			if !bs.empty() {
+// 				newsub = &bs
+// 			}
+// 		} else {
+// 			in := intersectNodes(subnodes[:len(nodes)])
+// 			if in != nil {
+// 				newsub = in
+// 			}
+// 		}
+// 		if newsub != nil {
+// 			result.subnodes = append(result.subnodes,
+// 				subnode{index: index, sub: newsub})
+// 		} else {
+// 			// Although all the nodes have an item at this position,
+// 			// the intersection of those items is empty.
+// 			result.bitset.remove(index)
+// 		}
+// 	}
+// 	if result.bitset.empty() {
+// 		return nil
+// 	}
+// 	return result
+// }

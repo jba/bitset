@@ -22,24 +22,33 @@ func (s *set256) add(n uint8) {
 	s.sets[n/64].Add(n % 64)
 }
 
+func (s *set256) add64(e uint64) { s.add(uint8(e)) }
+
 func (s *set256) remove(n uint8) {
 	s.sets[n/64].Remove(n % 64)
+}
+
+func (s *set256) remove64(e uint64) bool {
+	s.remove(uint8(e))
+	return s.empty()
 }
 
 func (s *set256) contains(n uint8) bool {
 	return s.sets[n/64].Contains(n % 64)
 }
 
+func (s *set256) contains64(e uint64) bool { return s.contains(uint8(e)) }
+
 func (s *set256) empty() bool {
 	return s.sets[0].Empty() && s.sets[1].Empty() && s.sets[2].Empty() && s.sets[3].Empty()
 }
 
-func (s *set256) clear() {
-	s.sets[0].Clear()
-	s.sets[1].Clear()
-	s.sets[2].Clear()
-	s.sets[3].Clear()
-}
+// func (s *set256) clear() {
+// 	s.sets[0].Clear()
+// 	s.sets[1].Clear()
+// 	s.sets[2].Clear()
+// 	s.sets[3].Clear()
+// }
 
 func (s *set256) len() int {
 	return s.sets[0].Len() + s.sets[1].Len() + s.sets[2].Len() + s.sets[3].Len()
@@ -84,6 +93,24 @@ func (s1 *set256) addIn(sub subber) {
 	s1.sets[3].AddIn(s2.sets[3])
 }
 
+func (s1 *set256) removeIn(sub subber) (empty bool) {
+	s2 := sub.(*set256)
+	s1.sets[0].RemoveIn(s2.sets[0])
+	s1.sets[1].RemoveIn(s2.sets[1])
+	s1.sets[2].RemoveIn(s2.sets[2])
+	s1.sets[3].RemoveIn(s2.sets[3])
+	return s1.empty()
+}
+
+func (s1 *set256) removeNotIn(sub subber) (empty bool) {
+	s2 := sub.(*set256)
+	s1.sets[0].RemoveNotIn(s2.sets[0])
+	s1.sets[1].RemoveNotIn(s2.sets[1])
+	s1.sets[2].RemoveNotIn(s2.sets[2])
+	s1.sets[3].RemoveNotIn(s2.sets[3])
+	return s1.empty()
+}
+
 // c = a intersect b
 // func (c *Set256) Intersect2(a, b *Set256) {
 // 	c.sets[0] = a.sets[0] & b.sets[0]
@@ -93,18 +120,18 @@ func (s1 *set256) addIn(sub subber) {
 // }
 
 // c cannot be one of sets
-func (c *set256) intersectN(bs []*set256) {
-	if len(bs) == 0 {
-		c.clear()
-		return
-	}
-	for i := 0; i < len(c.sets); i++ {
-		c.sets[i] = bs[0].sets[i]
-		for _, s := range bs[1:] {
-			c.sets[i].RemoveNotIn(s.sets[i])
-		}
-	}
-}
+// func (c *set256) intersectN(bs []*set256) {
+// 	if len(bs) == 0 {
+// 		c.clear()
+// 		return
+// 	}
+// 	for i := 0; i < len(c.sets); i++ {
+// 		c.sets[i] = bs[0].sets[i]
+// 		for _, s := range bs[1:] {
+// 			c.sets[i].RemoveNotIn(s.sets[i])
+// 		}
+// 	}
+// }
 
 // Fill a with set elements, starting from start.
 // Return the number added.
@@ -145,19 +172,6 @@ func (s set256) String() string {
 	}
 	b.WriteByte('}')
 	return b.String()
-}
-
-// For subber, used in node:
-
-func (s *set256) add64(e uint64) { s.add(uint8(e)) }
-
-func (s *set256) remove64(e uint64) bool {
-	s.remove(uint8(e))
-	return s.empty()
-}
-
-func (s *set256) contains64(e uint64) bool {
-	return s.contains(uint8(e))
 }
 
 func (s *set256) memSize() uint64 { return memSize(*s) }

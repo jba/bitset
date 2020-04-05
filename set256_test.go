@@ -145,24 +145,24 @@ func naiveElementsUint64(s interface {
 	return els
 }
 
-func TestIntersectN(t *testing.T) {
-	var c set256
-	b1 := sampleSet256()
-	b2 := sampleSet256()
-	c.intersectN([]*set256{&b1, &b2})
-	if !c.equal(&b1) {
-		t.Fatal("not equal")
-	}
-	c.intersectN([]*set256{&b1, &b2, &set256{}})
-	if !c.empty() {
-		t.Fatal("not empty")
-	}
-	var b3 set256
-	b3.add(201)
-	b3.add(188)
-	b3.add(254)
-	c.intersectN([]*set256{&b1, &b3})
-	if c.len() != 1 || !c.contains(201) {
-		t.Fatal("bad c")
-	}
-}
+// func TestIntersectN(t *testing.T) {
+// 	var c set256
+// 	b1 := sampleSet256()
+// 	b2 := sampleSet256()
+// 	c.intersectN([]*set256{&b1, &b2})
+// 	if !c.equal(&b1) {
+// 		t.Fatal("not equal")
+// 	}
+// 	c.intersectN([]*set256{&b1, &b2, &set256{}})
+// 	if !c.empty() {
+// 		t.Fatal("not empty")
+// 	}
+// 	var b3 set256
+// 	b3.add(201)
+// 	b3.add(188)
+// 	b3.add(254)
+// 	c.intersectN([]*set256{&b1, &b3})
+// 	if c.len() != 1 || !c.contains(201) {
+// 		t.Fatal("bad c")
+// 	}
+// }

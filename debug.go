@@ -2,6 +2,12 @@ package bitset
 
 import "fmt"
 
+func assert(b bool) {
+	if !b {
+		panic("assertion failed")
+	}
+}
+
 func (s *Sparse) dump() {
 	s.root.dump(0)
 }
