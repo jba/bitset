@@ -127,22 +127,31 @@ func (s1 *Dense) AddIn(s2 *Dense) {
 // RemoveIn removes from s1 all the elements that are in s2.
 // It sets s1 to the set difference of s1 and s2.
 func (s1 *Dense) RemoveIn(s2 *Dense) {
-	min := len(s1.sets)
-	if min > len(s2.sets) {
-		min = len(s2.sets)
-	}
+	min := minSetLen(s1, s2)
 	for i := 0; i < min; i++ {
 		s1.sets[i].RemoveIn(s2.sets[i])
 	}
 }
 
+// LenRemoveIn returns what s1.Len() would be after s1.RemoveIn(s2), without
+// modifying s1.
+func (s1 *Dense) LenRemoveIn(s2 *Dense) int {
+	min := minSetLen(s1, s2)
+	n := 0
+	for i, t := range s1.sets[:min] {
+		t.RemoveIn(s2.sets[i])
+		n += t.Len()
+	}
+	for _, t := range s1.sets[min:] {
+		n += t.Len()
+	}
+	return n
+}
+
 // RemoveNotIn removes from s1 all the elements that are not in s2.
 // It sets s1 to the intersection of s1 and s2.
 func (s1 *Dense) RemoveNotIn(s2 *Dense) {
-	min := len(s1.sets)
-	if min > len(s2.sets) {
-		min = len(s2.sets)
-	}
+	min := minSetLen(s1, s2)
 	for i := 0; i < min; i++ {
 		s1.sets[i].RemoveNotIn(s2.sets[i])
 	}
@@ -150,6 +159,13 @@ func (s1 *Dense) RemoveNotIn(s2 *Dense) {
 		s1.sets[i].Clear()
 	}
 
+}
+
+func minSetLen(s1, s2 *Dense) int {
+	if len(s1.sets) <= len(s2.sets) {
+		return len(s1.sets)
+	}
+	return len(s2.sets)
 }
 
 // Elements calls f on successive slices of the set's elements, from lowest to

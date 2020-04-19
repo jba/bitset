@@ -163,5 +163,32 @@ func TestDenseBinaryFunctions(t *testing.T) {
 		if !got.Equal(denseFrom(test.difference)) {
 			t.Errorf("%v difference %v: got %v, want %v", test.s1, test.s2, denseUints(got), test.difference)
 		}
+		gotLen := d1.LenRemoveIn(d2)
+		if want := got.Len(); gotLen != want {
+			t.Errorf("%v LenRemoveIn %v: got %d, want %d", test.s1, test.s2, gotLen, want)
+		}
+		if want := denseFrom(test.s1); !d1.Equal(want) {
+			t.Errorf("%v does not equal %v", d1, want)
+		}
 	}
+}
+
+func TestDifferentCaps(t *testing.T) {
+	d1 := NewDense(10)
+	d2 := NewDense(20)
+	for _, n := range []uint{3, 5, 7, 9} {
+		d1.Add(n)
+	}
+	for _, n := range []uint{7, 8, 9, 11, 13} {
+		d2.Add(n)
+	}
+	got := d1.LenRemoveIn(d2)
+	if want := 2; got != want {
+		t.Errorf("got %d, want %d", got, want)
+	}
+	got = d2.LenRemoveIn(d1)
+	if want := 3; got != want {
+		t.Errorf("got %d, want %d", got, want)
+	}
+
 }
