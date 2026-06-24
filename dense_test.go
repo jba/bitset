@@ -130,10 +130,9 @@ func denseUints(d *Dense) []uint {
 
 func denseElts(d *Dense) []uint {
 	var elts []uint
-	d.Elements(func(e []uint) bool {
-		elts = append(elts, e...)
-		return true
-	})
+	for e := range d.Elements() {
+		elts = append(elts, e)
+	}
 	return elts
 }
 

@@ -1,5 +1,7 @@
 package bitset
 
+import "iter"
+
 // Dense is a standard bitset, represented as a sequence of bits. See Sparse in
 // this package for a more memory-efficient storage scheme for sparse bitsets.
 type Dense struct {
@@ -168,19 +170,18 @@ func minSetLen(s1, s2 *Dense) int {
 	return len(s2.sets)
 }
 
-// Elements calls f on successive slices of the set's elements, from lowest to
-// highest. If f returns false, the iteration stops. The slice passed to f will
-// be reused when f returns.
-func (s *Dense) Elements(f func([]uint) bool) {
-	var buf [64]uint
-	for i, t := range s.sets {
-		n := t.populate(&buf)
-		offset := uint(64 * i)
-		for j := range buf[:n] {
-			buf[j] += offset
-		}
-		if !f(buf[:n]) {
-			break
+// Elements returns an iterator over the set's elements, from lowest to highest.
+func (s *Dense) Elements() iter.Seq[uint] {
+	return func(yield func(uint) bool) {
+		var buf [64]uint
+		for i, t := range s.sets {
+			n := t.populate(&buf)
+			offset := uint(64 * i)
+			for j := range buf[:n] {
+				if !yield(buf[j] + offset) {
+					return
+				}
+			}
 		}
 	}
 }
