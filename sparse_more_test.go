@@ -10,10 +10,9 @@ import (
 // elementsOf returns all elements of s in ascending order.
 func elementsOf(s *Sparse) []uint64 {
 	var elts []uint64
-	s.Elements(func(e []uint64) bool {
-		elts = append(elts, e...)
-		return true
-	})
+	for e := range s.Elements() {
+		elts = append(elts, e)
+	}
 	return elts
 }
 
@@ -102,12 +101,12 @@ func TestSparseEqualNegative(t *testing.T) {
 func TestSparseElementsEarlyStop(t *testing.T) {
 	s := sparseFrom(5, 9, 70, 300, 12345, 1e8)
 	var got []uint64
-	s.Elements(func(e []uint64) bool {
-		got = append(got, e...)
-		return false // stop after the first chunk
-	})
+	for e := range s.Elements() {
+		got = append(got, e)
+		break // stop after the first element
+	}
 	if len(got) == 0 {
-		t.Fatal("callback never invoked")
+		t.Fatal("iterator never yielded")
 	}
 	// Whatever we got must be a prefix of the sorted elements.
 	want := elementsOf(sparseFrom(5, 9, 70, 300, 12345, 1e8))

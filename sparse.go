@@ -1,6 +1,7 @@
 package bitset
 
 import (
+	"iter"
 	"reflect"
 	"strconv"
 	"strings"
@@ -132,28 +133,32 @@ func (s *Sparse) String() string {
 	var b strings.Builder
 	b.WriteByte('{')
 	first := true
-	s.Elements(func(elts []uint64) bool {
-		for _, e := range elts {
-			if !first {
-				b.WriteString(", ")
-			}
-			first = false
-			b.WriteString(strconv.FormatUint(e, 10))
+	for e := range s.Elements() {
+		if !first {
+			b.WriteString(", ")
 		}
-		return true
-	})
+		first = false
+		b.WriteString(strconv.FormatUint(e, 10))
+	}
 	b.WriteByte('}')
 	return b.String()
 }
 
-// Elements calls f on successive slices of the set's elements, from lowest to
-// highest. If f returns false, the iteration stops. The slice passed to f will
-// be reused when f returns.
-func (s *Sparse) Elements(f func([]uint64) bool) {
-	if s.root == nil {
-		return
+// Elements returns an iterator over the set's elements, from lowest to highest.
+func (s *Sparse) Elements() iter.Seq[uint64] {
+	return func(yield func(uint64) bool) {
+		if s.root == nil {
+			return
+		}
+		s.root.elements(func(elts []uint64) bool {
+			for _, e := range elts {
+				if !yield(e) {
+					return false
+				}
+			}
+			return true
+		}, 0)
 	}
-	s.root.elements(f, 0)
 }
 
 func (s *Sparse) memSize() uint64 {

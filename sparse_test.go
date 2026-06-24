@@ -211,10 +211,9 @@ func (u uslice) Less(i, j int) bool { return u[i] < u[j] }
 func TestSparseElements(t *testing.T) {
 	elements := func(s *Sparse) []uint64 {
 		var elts []uint64
-		s.Elements(func(e []uint64) bool {
-			elts = append(elts, e...)
-			return true
-		})
+		for e := range s.Elements() {
+			elts = append(elts, e)
+		}
 		return elts
 	}
 
