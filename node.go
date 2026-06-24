@@ -45,6 +45,8 @@ func (n *node) copyNode() *node {
 		return nil
 	}
 	n2 := *n
+	n2.subnodes = make([]subnode, len(n.subnodes))
+	copy(n2.subnodes, n.subnodes)
 	for i, sn := range n2.subnodes {
 		n2.subnodes[i].sub = sn.sub.copy()
 	}

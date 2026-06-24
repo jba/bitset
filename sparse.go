@@ -77,7 +77,7 @@ func (s1 *Sparse) Equal(s2 *Sparse) bool {
 // Copy returns a copy of s.
 func (s *Sparse) Copy() *Sparse {
 	c := NewSparse()
-	s.root = s.root.copyNode()
+	c.root = s.root.copyNode()
 	return c
 }
 
